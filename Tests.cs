@@ -6,15 +6,26 @@ using Xamarin.UITest;
 using Xamarin.UITest.Queries;
 using Xamarin.UITest.Android;
 using System.Threading;
+using static Login;
 
 namespace UITest3
-{
-
+{   
 
     [TestFixture]
     public class Tests
     {
         AndroidApp app;
+
+        //Data used for Tests
+        //
+        private String email = "andreimoisaa@mail.ru";
+        private String password = "12345";
+        private String name = "Andrei";
+        private String address = "Søren Kierkegaards Plads1 ";
+        private String floorAptNr = "666";
+        private String phoneNumber = "0758888888";
+        //
+        //
 
         [SetUp]
         public void BeforeEachTest()
@@ -38,11 +49,14 @@ namespace UITest3
         [Test]
         public void DeliverySuccessScenario()
         {
+            Thread.Sleep(1000);
             Order1Item(1);
 
-            Login("andreimoisaa@mail.ru","12345");
+            Thread.Sleep(1000);
+            new Login(app).SingIn(email,password);
 
-            TryDeliveryOrCollect();
+            Thread.Sleep(1000);
+            Delivery();
 
             //finishing and going to payment section
             app.Tap(x => x.Id("new_order_pay_bill_btn"));
@@ -52,25 +66,10 @@ namespace UITest3
         [Test]
         public void CreateNewUserScenario()
         {
-            Order1Item(2);
-
-            CreateUser("Rasmus","ras@mail.ru", "12345");
-
-            //TakeAway();
-
-            //finishing and going to payment section
-            //app.Tap(x => x.Id("new_order_pay_bill_btn"));
-        }
-
-        [Test]
-        public void TakeAwaySuccessScenario()
-        {
             Order1Item(4);
 
-            Login("andreimoisaa@mail.ru", "12345");
+            new Login(app).CreateUser("Rasmus","ras@mail.ru", "12345");
 
-            //TryDeliveryOrCollect();   //uncomment this line and comment the next 2 for deivery test
-            app.Tap(x => x.Id("takeaway_iv"));
             TakeAway();
 
             //finishing and going to payment section
@@ -78,15 +77,19 @@ namespace UITest3
         }
 
         [Test]
-        public void NewTest()
+        public void TakeAwaySuccessScenario()
         {
-            app.Tap(x => x.Id("imageView").Index(1));
-            app.Tap(x => x.Id("menu_item_plus_btn"));
-            app.Tap(x => x.Id("select_dishes_shopping_basket_fab"));
-            app.Tap(x => x.Id("new_order_pay_bill_btn"));
-            app.Tap(x => x.Id("authButton"));
-        }
+            Thread.Sleep(1000);
 
+            Order1Item(4);
+
+            new Login(app).SingIn(email, password);
+
+            TakeAway();
+
+            //finishing and going to payment section
+            app.Tap(x => x.Id("new_order_pay_bill_btn"));
+        }
 
         public void TryDeliveryOrCollect()
         {
@@ -122,91 +125,41 @@ namespace UITest3
             {
                 app.Tap(x => x.Id("imageView").Index(index));
             }
-
-            //In case the restaurant is closed
-            try
-            {
-                app.Tap(x => x.Id("button1"));
-            }
-            catch(Exception e){}
+            //In case the store is closed
+            CheckForMessage();
             
             app.Tap(x => x.Id("menu_item_plus_btn"));
             app.Tap(x => x.Id("select_dishes_shopping_basket_fab"));
             app.Tap(x => x.Id("new_order_pay_bill_btn"));
         }
+
+        public void CheckForMessage()
+        {
+            if (app.Query("message").Any())
+            {
+                //tap Comfirm
+                app.Tap(x => x.Id("button1"));
+            }
+        }
         public void TakeAway()
         {
-          
+            app.Tap(x => x.Id("takeaway_iv"));
             app.Tap(x => x.Id("asap_btn"));
             app.Tap(x => x.Id("pay_btn"));
             app.Tap(x => x.Id("new_order_pay_bill_btn"));
         }
         public void Delivery()
-        {   // this try is in case of messages about closed delivery hours
-           /* try
-            {
-                app.Tap(x => x.Id("button1"));
-            }
-            catch (Exception e)
-            {
+        {   // In case of messages about closed delivery hours
 
-            }*/
+            CheckForMessage();
+
+            app.Tap(x => x.Id("delivery_iv"));
             app.Tap(x => x.Id("asap_btn"));
             app.Tap(x => x.Id("pay_btn"));
-            InsertAddress("Andrei", "Søren Kierkegaards Plads 1", "1221", "0758888888");
 
+            new Address(app,name,address,floorAptNr,phoneNumber).InsertAddress();
         }
-        public void InsertAddress(String name,String address,String postCode,String phone)
-        {
  
-
-            app.ClearText(x => x.Id("delivery_address_name_et"));
-            app.Tap(x => x.Id("delivery_address_name_et"));
-            app.EnterText(x => x.Id("delivery_address_name_et"), name);
-
-            app.ClearText(x => x.Id("delivery_address_address_postcode_mode_et"));
-            app.Tap(x => x.Id("delivery_address_address_postcode_mode_et"));
-            app.EnterText(x => x.Id("delivery_address_address_postcode_mode_et"), address);
-
-            app.Tap(x => x.Id("delivery_address_postcode_et"));
-            app.ClearText(x => x.Id("delivery_areas_postcode"));
-            app.EnterText(x => x.Id("delivery_areas_postcode"), postCode);
-            Thread.Sleep(2000);
-            app.Tap(x => x.Class("AppCompatTextView").Text("1221"));
-
-            app.ClearText(x => x.Id("delivery_address_telephone_postcode_mode_et"));
-            app.EnterText(x => x.Id("delivery_address_telephone_postcode_mode_et"), phone);
-            app.Back();
-
-            app.Tap(x => x.Id("delivery_address_validate_tv"));
-
-        }
-        public void Login(String email, String password)
-        {
-            app.Tap(x => x.Id("user_login_fragment_create_acc_tv"));
-            app.EnterText(x => x.Id("user_login_fragment_email_et"), email);
-            app.EnterText(x => x.Id("user_login_fragment_password_et"), password);
-            app.PressEnter();
-            app.Tap(x => x.Id("old_fashioned_way_space"));
-            app.Tap(x => x.Id("user_login_button"));
-        }
-        public void CreateUser(String name,String email,String password)
-        {
-            app.Tap(x => x.Id("user_login_fragment_name_et"));
-            app.EnterText(x => x.Id("user_login_fragment_name_et"), name);
-            //app.Tap(x => x.Id("user_login_old_way"));
-            //app.PressEnter();
-            //app.DoubleTap(x => x.Id("user_login_fragment_name_et"));
-            //app.Tap(x => x.Id("user_login_fragment_email_et"));
-            app.EnterText(x => x.Id("user_login_fragment_email_et"), email);
-            //app.Tap(x => x.Id("user_login_fragment_password_et"));
-            app.EnterText(x => x.Id("user_login_fragment_password_et"), password);
-            app.DismissKeyboard();
-            //app.Tap(x => x.Id("user_login_button"));
-            app.Tap(x => x.Id("user_login_button"));
-        }
-
-      
     }
 }
 
